@@ -232,5 +232,9 @@ fn test_deposit() {
     let vault_y_state = TokenAccount::try_deserialize(&mut vault_y_account.data.as_slice()).unwrap();
     assert_eq!(vault_y_state.amount, 30);
 
+    let user_lp_account = svm.get_account(&user_lp).unwrap();
+    let user_lp_state = TokenAccount::try_deserialize(&mut user_lp_account.data.as_slice()).unwrap();
+    assert_eq!(user_lp_state.amount, 10);
+
 
 }
