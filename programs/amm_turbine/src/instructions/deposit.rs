@@ -11,8 +11,8 @@ use crate::{error::AmmError, state::Config};
 pub struct Deposit<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    pub mint_x: Account<'info,Mint>,
-    pub mint_y: Account<'info,Mint>,
+    pub mint_x: Box<Account<'info,Mint>>,
+    pub mint_y: Box<Account<'info,Mint>>,
     #[account(
         has_one=mint_x,
         has_one=mint_y,
@@ -25,30 +25,30 @@ pub struct Deposit<'info> {
         seeds = [b"lp",config.key().as_ref()],
         bump = config.lp_bump,
     )]
-    pub mint_lp: Account<'info,Mint>,
+    pub mint_lp: Box<Account<'info,Mint>>,
     #[account(
         mut,
         associated_token::mint = mint_x,
         associated_token::authority = config,)]
-    pub vault_x: Account<'info,TokenAccount>,
+    pub vault_x: Box<Account<'info,TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = mint_y,
         associated_token::authority = config,)]
-    pub vault_y: Account<'info,TokenAccount>,
+    pub vault_y: Box<Account<'info,TokenAccount>>,
 
     #[account(
         mut,
         associated_token::mint = mint_x,
         associated_token::authority = signer,
     )]
-    pub user_x: Account<'info,TokenAccount>,
+    pub user_x: Box<Account<'info,TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = mint_y,
         associated_token::authority = signer,
     )]
-    pub user_y: Account<'info,TokenAccount>,
+    pub user_y: Box<Account<'info,TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = mint_lp,
@@ -92,7 +92,7 @@ impl<'info> Deposit<'info> {
         self.deposit_tokens(true, x)?;
         self.deposit_tokens(false, y)?;
         self.mint_lp_tokens(amount)
-        
+
     }
 
     pub fn deposit_tokens(&self, is_x:bool, amount:u64) -> Result<()> {
