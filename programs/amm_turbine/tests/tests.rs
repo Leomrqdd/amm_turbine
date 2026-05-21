@@ -2,6 +2,9 @@ use {
     anchor_spl::associated_token,
     litesvm::LiteSVM,
     litesvm_token::CreateMint,
+    litesvm_token::MintTo,
+    litesvm_token::Transfer,
+    litesvm_token::CreateAssociatedTokenAccount,
     solana_message::{Instruction,Message, VersionedMessage},
     solana_signer::Signer,
     solana_keypair::Keypair,
@@ -9,6 +12,7 @@ use {
     solana_pubkey::Pubkey,
     amm_turbine::state::Config,
     anchor_lang::AccountDeserialize,
+    anchor_spl::token::TokenAccount,
 };
 
 mod ix_handlers;
@@ -131,6 +135,102 @@ fn test_initialize() {
     assert_eq!(config_state.mint_y, mint_y);
     assert_eq!(config_state.locked, false);
     assert_eq!(config_state.authority, Some(payer.pubkey()));
+
+
+}
+
+
+#[test]
+fn test_deposit() {
+
+    let (
+        mut svm,
+        payer,
+        mint_x,
+        mint_y,
+        config,
+        mint_lp,
+        vault_x,
+        vault_y,
+    ) = setup();
+
+    let ix_init = create_initialize_ix(&payer, mint_x, mint_y, config, mint_lp, vault_x, vault_y);
+    send(&mut svm, &[ix_init], &payer, &[&payer]).unwrap();
+
+    let user = payer.pubkey();
+
+    let user_x = CreateAssociatedTokenAccount::new(
+        &mut svm, 
+        &payer,
+        &mint_x)
+        .owner(&user)
+        .send()
+        .unwrap();
+
+
+
+    let user_y = CreateAssociatedTokenAccount::new(
+        &mut svm, 
+        &payer,
+        &mint_y)
+        .owner(&user)
+        .send()
+        .unwrap();
+    
+
+    let user_lp = CreateAssociatedTokenAccount::new(
+        &mut svm, 
+        &payer,
+        &mint_lp)
+        .owner(&user)
+        .send()
+        .unwrap();
+
+    MintTo::new(
+        &mut svm,
+        &payer,
+        &mint_x,
+        &user_x,
+        1000
+    )
+    .send()
+    .unwrap();
+
+    MintTo::new(
+        &mut svm,
+        &payer,
+        &mint_y,
+        &user_y,
+        1000
+    )
+    .send()
+    .unwrap();
+
+    
+
+    let ix = deposit(
+        &payer,
+        mint_x,
+        mint_y,
+        config,
+        mint_lp,
+        vault_x,
+        vault_y,
+        user_x,
+        user_y,
+        user_lp
+    );
+
+    let res = send(&mut svm, &[ix], &payer, &[&payer]);
+    assert!(res.is_ok());
+
+    let vault_x_account = svm.get_account(&vault_x).unwrap();
+    let vault_x_state = TokenAccount::try_deserialize(&mut vault_x_account.data.as_slice()).unwrap();
+    assert_eq!(vault_x_state.amount, 30);
+
+    let vault_y_account = svm.get_account(&vault_y).unwrap();
+    let vault_y_state = TokenAccount::try_deserialize(&mut vault_y_account.data.as_slice()).unwrap();
+    assert_eq!(vault_y_state.amount, 30);
 
 
 }
