@@ -15,7 +15,13 @@ declare_id!("C9VNgETz1HMM1G73aVT6b1KVFG2ag1yBQ4PKXuwiCFm5");
 pub mod amm_turbine {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        seed:u64,
+        fee:u16,
+        authority: Option<Pubkey>,
+    ) -> Result<()> {
+        ctx.accounts.init(seed,fee,authority,ctx.bumps)
     }
+
 }
