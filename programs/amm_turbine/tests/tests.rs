@@ -140,6 +140,8 @@ fn test_initialize() {
 }
 
 
+
+
 #[test]
 fn test_deposit() {
 
@@ -235,6 +237,134 @@ fn test_deposit() {
     let user_lp_account = svm.get_account(&user_lp).unwrap();
     let user_lp_state = TokenAccount::try_deserialize(&mut user_lp_account.data.as_slice()).unwrap();
     assert_eq!(user_lp_state.amount, 10);
+
+    let user_x_account = svm.get_account(&user_x).unwrap();
+    let user_x_state = TokenAccount::try_deserialize(&mut user_x_account.data.as_slice()).unwrap();
+    assert_eq!(user_x_state.amount, 970);
+    let user_y_account = svm.get_account(&user_y).unwrap();
+    let user_y_state = TokenAccount::try_deserialize(&mut user_y_account.data.as_slice()).unwrap();
+    assert_eq!(user_y_state.amount, 970);
+
+
+}
+
+
+#[test]
+fn test_withdraw() {
+
+    let (
+        mut svm,
+        payer,
+        mint_x,
+        mint_y,
+        config,
+        mint_lp,
+        vault_x,
+        vault_y,
+    ) = setup();
+
+    let ix_init = create_initialize_ix(&payer, mint_x, mint_y, config, mint_lp, vault_x, vault_y);
+    send(&mut svm, &[ix_init], &payer, &[&payer]).unwrap();
+
+
+    let user = payer.pubkey();
+
+    let user_x = CreateAssociatedTokenAccount::new(
+        &mut svm, 
+        &payer,
+        &mint_x)
+        .owner(&user)
+        .send()
+        .unwrap();
+
+
+
+    let user_y = CreateAssociatedTokenAccount::new(
+        &mut svm, 
+        &payer,
+        &mint_y)
+        .owner(&user)
+        .send()
+        .unwrap();
+    
+
+    let user_lp = CreateAssociatedTokenAccount::new(
+        &mut svm, 
+        &payer,
+        &mint_lp)
+        .owner(&user)
+        .send()
+        .unwrap();
+
+    MintTo::new(
+        &mut svm,
+        &payer,
+        &mint_x,
+        &user_x,
+        1000
+    )
+    .send()
+    .unwrap();
+
+    MintTo::new(
+        &mut svm,
+        &payer,
+        &mint_y,
+        &user_y,
+        1000
+    )
+    .send()
+    .unwrap();
+
+    let deposit_ix = deposit(
+        &payer,
+        mint_x,
+        mint_y,
+        config,
+        mint_lp,
+        vault_x,
+        vault_y,
+        user_x,
+        user_y,
+        user_lp
+    );
+
+    send(&mut svm, &[deposit_ix], &payer, &[&payer]).unwrap();
+
+
+    let withdraw_ix = withdraw(
+        &payer,
+        mint_x,
+        mint_y,
+        config,
+        mint_lp,
+        vault_x,
+        vault_y,
+        user_x,
+        user_y,
+        user_lp
+    );
+
+    let res = send(&mut svm, &[withdraw_ix], &payer, &[&payer]);
+    assert!(res.is_ok());
+
+    let vault_x_account = svm.get_account(&vault_x).unwrap();
+    let vault_x_state = TokenAccount::try_deserialize(&mut vault_x_account.data.as_slice()).unwrap();
+    assert_eq!(vault_x_state.amount, 0);
+    let vault_y_account = svm.get_account(&vault_y).unwrap();
+    let vault_y_state = TokenAccount::try_deserialize(&mut vault_y_account.data.as_slice()).unwrap();
+    assert_eq!(vault_y_state.amount, 0);
+    let user_lp_account = svm.get_account(&user_lp).unwrap();
+    let user_lp_state = TokenAccount::try_deserialize(&mut user_lp_account.data.as_slice()).unwrap();
+    assert_eq!(user_lp_state.amount, 0);
+
+    let user_x_account = svm.get_account(&user_x).unwrap();
+    let user_x_state = TokenAccount::try_deserialize(&mut user_x_account.data.as_slice()).unwrap();
+    assert_eq!(user_x_state.amount, 1000);
+    let user_y_account = svm.get_account(&user_y).unwrap();
+    let user_y_state = TokenAccount::try_deserialize(&mut user_y_account.data.as_slice()).unwrap();
+    assert_eq!(user_y_state.amount, 1000);
+    
 
 
 }
