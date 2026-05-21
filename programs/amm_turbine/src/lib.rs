@@ -48,4 +48,11 @@ pub mod amm_turbine {
     ) -> Result<()> {
         ctx.accounts.swap(is_x, amount_in, min_amount_out)
     }
+
+    pub fn lock(
+        ctx: Context<Lock>,
+        lock:bool,
+    ) -> Result<()> {
+        ctx.accounts.lock(lock)
+    }
 }

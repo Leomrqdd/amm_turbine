@@ -8,4 +8,8 @@ pub enum AmmError{
     InvalidAmount,
     #[msg("Slippage exceeded")]
     SlippageExceeded,
+    #[msg("Unauthorized")]
+    Unauthorized,
+    #[msg("No authority set for this pool")]
+    NoAuthority,
 }

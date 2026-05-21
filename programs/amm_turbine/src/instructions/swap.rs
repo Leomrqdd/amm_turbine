@@ -82,7 +82,7 @@ impl<'info> Swap<'info> {
         .map_err(|_| AmmError::SlippageExceeded)?;
 
         self.deposit_tokens(is_x, swap_result.deposit)?;
-        self.withdraw_tokens(is_x, swap_result.withdraw)
+        self.withdraw_tokens(!is_x, swap_result.withdraw)
              
     }
 
